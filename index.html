@@ -1,0 +1,139 @@
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 20px; background: #f5f5f5; }
+  .tracker-container { max-width: 800px; margin: 0 auto; }
+  .tracker-wrap { padding: 1.5rem; background: white; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+  .tracker-title { font-size: 16px; font-weight: 600; color: #333; margin: 0 0 4px; }
+  .tracker-sub { font-size: 13px; color: #999; margin: 0 0 1.5rem; }
+  .month-label { font-size: 12px; color: #999; margin: 0 0 12px; letter-spacing: 0.05em; text-transform: uppercase; }
+  .days-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; }
+  .day-btn {
+    width: 48px; height: 56px;
+    border: 0.5px solid #ddd;
+    border-radius: 6px;
+    background: #fff;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    cursor: pointer; gap: 2px; transition: background 0.15s, border-color 0.15s;
+    font-family: inherit; font-size: 11px;
+  }
+  .day-btn:hover { background: #f9f9f9; }
+  .day-btn.checked { background: #EAF3DE; border-color: #639922; }
+  .day-btn.checked .day-num { color: #3B6D11; font-weight: 600; }
+  .day-btn.checked .check-icon { color: #639922; }
+  .day-btn.today { border: 2px solid #378ADD; }
+  .day-num { font-size: 13px; font-weight: 500; color: #333; line-height: 1; }
+  .day-dow { font-size: 10px; color: #999; line-height: 1; }
+  .check-icon { font-size: 16px; color: #ddd; }
+  .stats-row { display: flex; gap: 12px; }
+  .stat-card { background: #f5f5f5; border-radius: 6px; padding: 12px 16px; flex: 1; }
+  .stat-label { font-size: 12px; color: #999; margin: 0 0 4px; }
+  .stat-val { font-size: 20px; font-weight: 600; color: #333; margin: 0; }
+</style>
+
+<div class="tracker-container">
+  <h1 style="margin: 0 0 20px; font-size: 24px;">📊 Трекер привычек — Июнь 2026</h1>
+  
+  <!-- Контактирование -->
+  <div class="tracker-wrap">
+    <p class="tracker-title">📞 Контактирование — проект Doters</p>
+    <p class="tracker-sub">минимум 1 новое касание в день</p>
+    <p class="month-label">Июнь 2026</p>
+    <div class="days-grid" id="grid-contacts"></div>
+    <div class="stats-row">
+      <div class="stat-card">
+        <p class="stat-label">выполнено дней</p>
+        <p class="stat-val" id="stat-done-contacts">0</p>
+      </div>
+      <div class="stat-card">
+        <p class="stat-label">серия подряд</p>
+        <p class="stat-val" id="stat-streak-contacts">0 🔥</p>
+      </div>
+      <div class="stat-card">
+        <p class="stat-label">осталось в месяце</p>
+        <p class="stat-val" id="stat-left-contacts">—</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Медитация -->
+  <div class="tracker-wrap">
+    <p class="tracker-title">🧘 Медитация</p>
+    <p class="tracker-sub">ежедневная практика</p>
+    <p class="month-label">Июнь 2026</p>
+    <div class="days-grid" id="grid-meditation"></div>
+    <div class="stats-row">
+      <div class="stat-card">
+        <p class="stat-label">выполнено дней</p>
+        <p class="stat-val" id="stat-done-meditation">0</p>
+      </div>
+      <div class="stat-card">
+        <p class="stat-label">серия подряд</p>
+        <p class="stat-val" id="stat-streak-meditation">0 🔥</p>
+      </div>
+      <div class="stat-card">
+        <p class="stat-label">осталось в месяце</p>
+        <p class="stat-val" id="stat-left-meditation">—</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DAYS_RU = ['вс','пн','вт','ср','чт','пт','сб'];
+const KEY_CONTACTS = 'doters_contacts_june2026';
+const KEY_MEDITATION = 'meditation_june2026';
+
+let checkedContacts = JSON.parse(localStorage.getItem(KEY_CONTACTS) || '{}');
+let checkedMeditation = JSON.parse(localStorage.getItem(KEY_MEDITATION) || '{}');
+
+const startDay = 1;
+const totalDays = 30;
+const today = new Date();
+const todayNum = (today.getMonth() === 5 && today.getFullYear() === 2026) ? today.getDate() : null;
+
+function createGrid(gridId, checked, trackerName, onToggle) {
+  const grid = document.getElementById(gridId);
+  grid.innerHTML = '';
+  
+  for (let d = startDay; d <= totalDays; d++) {
+    const date = new Date(2026, 5, d);
+    const dow = DAYS_RU[date.getDay()];
+    const btn = document.createElement('button');
+    btn.className = 'day-btn' + (checked[d] ? ' checked' : '') + (d === todayNum ? ' today' : '');
+    btn.innerHTML = `<span class="check-icon">${checked[d] ? '✓' : '○'}</span><span class="day-num">${d}</span><span class="day-dow">${dow}</span>`;
+    btn.setAttribute('aria-label', `${d} июня`);
+    btn.addEventListener('click', () => {
+      checked[d] = !checked[d];
+      onToggle(checked);
+      createGrid(gridId, checked, trackerName, onToggle);
+      updateStats(gridId, checked);
+    });
+    grid.appendChild(btn);
+  }
+  updateStats(gridId, checked);
+}
+
+function updateStats(gridId, checked) {
+  const prefix = gridId.includes('contacts') ? 'contacts' : 'meditation';
+  const doneList = Object.keys(checked).filter(k => checked[k] && +k >= startDay).map(Number);
+  document.getElementById('stat-done-' + prefix).textContent = doneList.length;
+
+  let streak = 0;
+  for (let d = todayNum || totalDays; d >= startDay; d--) {
+    if (checked[d]) streak++;
+    else break;
+  }
+  document.getElementById('stat-streak-' + prefix).textContent = streak + (streak > 0 ? ' 🔥' : '');
+
+  const left = todayNum ? (totalDays - todayNum + 1) : totalDays;
+  document.getElementById('stat-left-' + prefix).textContent = left;
+}
+
+// Инициализация
+createGrid('grid-contacts', checkedContacts, 'Контактирование', (data) => {
+  try { localStorage.setItem(KEY_CONTACTS, JSON.stringify(data)); } catch(e) {}
+});
+
+createGrid('grid-meditation', checkedMeditation, 'Медитация', (data) => {
+  try { localStorage.setItem(KEY_MEDITATION, JSON.stringify(data)); } catch(e) {}
+});
+</script>
